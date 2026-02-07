@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 ## IMPORTING OPEN AI
-import os 
-from openai import OpenAI
+
+
 
 ## APP CONFIGURATION :
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 app = FastAPI(
     title="RUX AI",
     description="Backend for a voice-based AI companion with memory",
