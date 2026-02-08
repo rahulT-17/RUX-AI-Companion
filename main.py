@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-## IMPORTING OPEN AI
+## IMPORTING REQUEST FOR LM STUDIO(QWEN v3 4B)
+import requests
 
 
 
@@ -40,8 +41,8 @@ def extract_name(message: str) -> str :
 
 def llm_reply(user_message: str, memory: dict ) -> str:
     """
-    Generates a converstional reply using LLM.
-    memory is passed as context but not modified.
+    Generates a converstional reply using local LM via LM Studio.
+    succesfully falls back if model is unavailble.
     """
     system_prompt = f"""
                 You are RUX, a friendly AI companion.
@@ -49,15 +50,32 @@ def llm_reply(user_message: str, memory: dict ) -> str:
             If the name is None , do not guess it.
             Be cool , supportive ,casual and clear.
             """
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message}
-        ]
-    )
+    payload = {
+        "model" : "local-model",
+        "messages" : [
+            {"role" : "system", "content": system_prompt},
+            {"role" : "user", "content":user_message}
+        ],
+        "temperature" : 0.7,
+        "max_tokens" : 300
+    }
+    try:
+        response = requests.post(
+            "http://127.0.0.1:1234/v1/chat/completions",
+            json=payload,
+            timeout=120
+        )
+        response.raise_for_status()
+        data = response.json()
+        return data["choices"][0]["message"]["content"].strip()
 
-    return response.choices[0].message.content.strip()
+    except Exception as e:
+        print("LM STUDIO ERROR:", e)
+        if "low" in user_message or "sad" in user_message:
+            return "I'm here with you. Even if I'm a bit slow right now, you're not alone."
+        return "I'm having a small hiccup, but I'm still here. Tell me more."
+
+    
 
 # ROOT ENDPOINT : creates the main http :~
 @app.get("/")
